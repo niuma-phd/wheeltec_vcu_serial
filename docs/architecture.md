@@ -1,37 +1,33 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Architecture and branch policy
+# 架构与分支策略
 
-The default branch is middleware-independent. Domain commands, protocol
-encoding, parsing, transport, configuration, watchdogs, authorization, and the
-line-oriented CLI live in `main` and contain no ROS API.
+默认分支不依赖任何中间件。领域命令、协议编解码、解析、传输、配置、看门狗、授权
+和面向行协议的 CLI 均位于 `main`，且不包含 ROS API。
 
-Two maintained integration branches add only graph-edge adapters:
+两个长期维护的集成分支只增加 ROS 图边缘的适配层：
 
-- `ros1/noetic`: ROS 1 Noetic on Ubuntu 20.04;
-- `ros2/humble`: ROS 2 Humble on Ubuntu 22.04.
+- `ros1/noetic`：Ubuntu 20.04 上的 ROS 1 Noetic；
+- `ros2/humble`：Ubuntu 22.04 上的 ROS 2 Humble。
 
-Each integration branch periodically merges from `main`, never the reverse. A
-wrapper converts a middleware message into the core `TimedMotionCommand`,
-delegates validation and serial behavior to the core library, and publishes
-normalized feedback. The core public contract is signed linear speed plus yaw
-rate and explicit timing; `/cmd_vel` is not an internal or universal command
-contract.
+每个集成分支定期从 `main` 合并，绝不反向合并。包装层将中间件消息转换为核心层的
+`TimedMotionCommand`，把校验和串口行为交由核心库处理，并发布归一化反馈。核心
+公共接口契约是带符号线速度、横摆角速度及显式时序；`/cmd_vel` 不是内部或通用的
+命令接口契约。
 
 ```text
-operator or middleware edge
+操作员或中间件边界
           |
           v
-  TimedMotionCommand + authorization
+  TimedMotionCommand + 授权
           |
           v
- guarded ROS-free session ----> POSIX serial transport ----> VCU
+受保护的无 ROS 会话 ----> POSIX 串口传输 ----> VCU
           ^                              |
           |                              v
- normalized Feedback <----------- bounded stream parser
+   归一化 Feedback <----------- 有界流解析器
 ```
 
-The session owns connection generation, command sequence high-water marks,
-authorization epochs, feedback freshness, command freshness, transmit rate,
-software emergency-stop state, and bounded zero attempts. The transport owns
-only file-descriptor lifecycle and deadline-aware byte I/O. The codec has no
-file descriptor, clock, ROS type, logging system, or configuration lookup.
+会话负责连接代次、命令序列高水位、授权代次（epoch）、反馈新鲜度、命令新鲜度、
+发送频率、软件急停状态和有界零帧尝试。传输层只负责文件描述符生命周期，以及带
+截止时间的字节 I/O。编解码器不持有文件描述符、时钟、ROS 类型、日志系统或配置
+查询逻辑。
