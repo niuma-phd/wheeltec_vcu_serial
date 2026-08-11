@@ -24,6 +24,11 @@ hardware without an explicit operator edit and three independent CLI gates.
 The ROS branches consume the middleware-independent API. `/cmd_vel` is not a
 core contract and is not treated as a universal vehicle command.
 
+On `ros2/humble`, see the
+[ROS 2 Humble adapter guide](ros2/wheeltec_vcu_serial_ros2/README.md) for its
+vehicle-specific messages, fail-closed launch, safety lifecycle, and pinned
+container validation.
+
 ## What is implemented
 
 - 11-byte command encoding and exact zero-frame construction;
