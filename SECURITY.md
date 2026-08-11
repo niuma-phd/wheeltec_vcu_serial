@@ -1,18 +1,16 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Security policy
+# 安全策略
 
-Please report security or safety-sensitive defects privately through GitHub's
-security-advisory interface rather than a public issue. Include the affected
-revision, platform, reproduction using a fake transport or PTY, and the observed
-fail-closed behavior.
+请通过 GitHub 的安全公告（security advisory）界面私下报告安全缺陷或涉及运行安全
+的缺陷，不要发布公开 issue。报告应包含受影响的修订版本、平台、使用伪传输或 PTY
+完成的复现步骤，以及观察到的失败即关闭行为。
 
-Never attach vehicle captures, device identifiers, credentials, firmware, or
-manufacturer source to a report. Redact paths and use synthetic frames.
+不得在报告中附带车辆抓取数据、设备标识符、凭据、固件或厂家源码。请隐去路径并
+使用合成帧。
 
-No release should weaken a limit, watchdog, authorization gate, zero retry, or
-reconnect interlock merely to make a test pass.
+任何发布版本都不得仅为使测试通过而削弱限制、看门狗、授权门控、零帧重试或重连
+互锁。
 
-The integer authorization and emergency-stop reset tokens prevent stale values
-from being replayed within a process. They are deliberately not secrets or
-identity credentials. Protect the CLI input channel and any wrapper API with
-deployment-level process, network, and middleware access controls.
+授权和急停复位所用的整数 token 各自维护独立高水位，用于阻止同一进程内对应的
+旧值重放，二者不共享序列。它们有意不被设计为秘密或身份凭据。部署时必须通过
+进程、网络和中间件层的访问控制保护 CLI 输入通道及所有包装 API。

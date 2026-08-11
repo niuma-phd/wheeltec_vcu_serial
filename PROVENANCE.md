@@ -1,14 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Provenance
+# 来源说明
 
-This repository is an independently written interoperability implementation.
-Its public protocol description is limited to observed wire-level facts needed
-to exchange command and feedback frames. The design, source code, tests, build
-files, and documentation in this repository were authored for this project.
+本仓库是独立编写的互操作实现。公开协议说明仅限于交换命令帧和反馈帧所必需的、
+已经观察确认的线协议（wire）层事实。仓库中的设计、源代码、测试、构建文件和
+文档均为本项目原创。
 
-No manufacturer source code, firmware, binary, document, middleware, recorded
-serial stream, vehicle log, or hardware evidence is included. Tests construct
-synthetic frames in memory. No third-party source is vendored.
+仓库不包含厂家源代码、固件、二进制文件、文档、中间件、串口录制数据、车辆日志或
+硬件证据。测试在内存中构造合成帧，不内嵌任何第三方源码。
 
-The project name identifies the intended interoperability boundary only. It
-does not imply affiliation with or endorsement by a manufacturer.
+项目名称只用于标识预期的互操作边界，不代表与任何厂家存在从属关系或获得厂家
+背书。
