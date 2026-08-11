@@ -1,68 +1,54 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Safety limitations
+# 安全限制
 
-This software is not a certified safety controller. The wire profile does not
-provide a VCU acknowledgement, source timestamp, command echo, or positive
-evidence that a zero command caused a physical stop. A completed host write
-means only that the local operating system accepted all bytes before the stated
-deadline.
+本软件不是经过认证的安全控制器。线协议（wire）说明不提供 VCU 应答（ACK）、源端
+时间戳、命令回显，也无法明确证明零命令已经使车辆实际停止。主机写入完成只表示
+本地操作系统在指定截止时间前接受了全部字节。
 
-Do not assume that serial loss, process exit, USB removal, or a host watchdog
-stops the controller. Keep an independently verified, physically operable
-traction-energy stop chain. Software zero frames, the composite inhibit bit,
-and the software emergency-stop latch do not replace it.
+不得假定串口丢失、进程退出、USB 拔出或主机看门狗会使控制器停止。必须保留经过
+独立验证、可实际操作的牵引能源切断链路。软件零帧、复合 inhibit 位和软件急停锁存
+都不能替代它。
 
-Key fail-closed properties are:
+主要的失败即关闭属性如下：
 
-- no physical device is selected in the example configuration;
-- motion requires an explicit finite maximum linear-speed magnitude with
-  `0 < max_linear_speed_mps < 6.0`;
-- missing, zero, negative, NaN, infinite, or at-least-6 limits are rejected
-  before a serial device can be opened for actuation;
-- wire `int16_t` checks are independent of the configured speed ceiling;
-- startup and every reconnect begin inhibited and attempt an exact-zero frame;
-- a reconnect clears command and authorization state, preserves replay
-  high-water marks, and requires a new operator authorization plus a new run of
-  fresh commands;
-- stale commands, stale feedback, clock regression, inhibit feedback,
-  transport failure, or latched software emergency stop revoke motion;
-- invalid feedback never refreshes freshness; if no valid allowed feedback
-  follows, feedback-watchdog expiry revokes motion and starts zero;
-- zero writes use bounded retries and report uncertain outcome after partial
-  writes, disconnects, or deadlines;
-- exhausting the configured zero attempts latches a fault for that connection
-  generation; repeated STOP, feedback, or ESTOP input cannot refresh the retry
-  budget, and only a new transport generation can begin a new initial-zero
-  episode;
-- STOP received while disconnected is retained as local fail-safe intent and
-  does not cancel reconnect, but no zero delivery is claimed.
+- 示例配置不选择任何物理设备；
+- 运动控制要求显式设置有限的最大线速度绝对值，且
+  `0 < max_linear_speed_mps < 6.0`；
+- 缺失、零、负数、NaN、无穷大或大于等于 6.0 的限制值，都会在打开串口驱动设备前
+  被拒绝；
+- 线协议（wire）的 `int16_t` 范围检查独立于配置的速度上限；
+- 启动和每次重连时都先进入禁止运动状态，并尝试发送精确零帧；
+- 重连会清除命令和授权状态、保留重放高水位，并要求操作员重新授权和重新提交一组
+  新鲜命令；
+- 命令过期、反馈过期、时钟倒退、inhibit 反馈、传输故障或软件急停锁存都会撤销
+  运动许可；
+- 无效反馈绝不会刷新新鲜度；如果之后没有收到有效且允许控制的反馈，反馈看门狗
+  到期会撤销运动许可并开始发送零帧；
+- 零帧写入使用有界重试；发生部分写入、断连或截止时间到期时，会报告结果不确定；
+- 配置的零帧尝试次数耗尽后，会针对当前连接代次锁存故障；重复输入 STOP、反馈
+  或 ESTOP 都不能恢复重试预算，只有新的传输连接代次才能开始新的初始零帧过程；
+- 断连期间收到的 STOP 会作为本地失效保护意图保留，并且不会取消重连，但软件
+  不会声称零帧已经送达。
 
-Authorization and emergency-stop reset tokens are monotonic replay guards, not
-passwords, credentials, capabilities, or proof of an operator's identity. The
-library assumes its caller and the CLI standard-input channel are trusted.
-Deployments that expose these operations over IPC or middleware must
-authenticate and authorize callers outside this library; a higher integer token
-alone grants no security boundary.
+授权 token 与急停复位 token 各自维护独立的单调高水位，分别防止旧值重放，二者
+不共享序列。它们不是密码、凭据、能力凭证（capability）或操作员身份证明。库
+假定其调用方和 CLI 标准输入通道可信。若部署
+通过 IPC 或中间件暴露这些操作，必须在本库之外对调用者进行身份认证和授权；单凭
+更大的整数 token 不会形成安全边界。
 
-Reverse speed is representable by the wire codec because the keyboard contract
-includes `s`. That does not establish that a particular vehicle is mechanically
-or operationally safe in reverse. Direction, yaw sign, steering response,
-braking, holding, deadband, reconnect behavior, and the installed firmware must
-be commissioned for the exact vehicle before actuation.
+因为键盘控制约定包含 `s`，线协议编解码器能够表示倒车速度。这并不能证明某一
+具体车辆在机械或运行层面适合安全倒车。驱动前必须针对具体车辆完成方向、横摆
+符号、转向响应、制动、驻车保持、死区、重连行为和所装固件的调试确认。
 
-The read-only monitor opens a TTY with `O_RDONLY` and contains no write call.
-Opening or configuring a USB serial interface can still change line state or
-reset some devices; receive-only is not electrically consequence-free.
+只读监视器以 `O_RDONLY` 打开 TTY，且不包含任何写入调用。打开或配置 USB 串口
+接口仍可能改变线路状态或使某些设备复位；只接收并不意味着在电气上完全无影响。
 
-Each project transport requests Linux `TIOCEXCL`, which prevents later opens
-while its descriptor remains alive. That ioctl cannot detect or evict a
-non-cooperating process that opened the TTY first. Deployment must therefore
-enforce one external owner for the serial interface; never run the actuation
-CLI, monitor, a ROS adapter, or another serial program concurrently.
+每个项目传输实例都会请求 Linux `TIOCEXCL`，在其文件描述符有效期间阻止后续打开。
+该 ioctl 无法检测或驱逐更早打开 TTY 的不配合进程。因此部署环境必须保证串口只有
+一个外部所有者；绝不能同时运行驱动 CLI、监视器、ROS 适配器或其他串口程序。
 
-The TTY keyboard backend cannot observe physical key-up events. It converts the
-absence of operating-system key repeat into a release after the configured
-dead-man timeout. Use the optional Linux input-event backend when true release
-events are required. Every release, input timeout, normal exit, caught signal,
-and handled exception requests zero, but `SIGKILL`, power loss, kernel failure,
-and a broken/disconnected transport cannot be covered by process cleanup.
+TTY 键盘后端无法观察物理按键抬起（key-up）事件。它把配置的失能保护
+（dead-man）超时时间内没有收到操作系统按键重复视为松键。需要真实松键事件时，
+请使用可选的 Linux input-event 后端。每次松键、输入超时、正常退出、捕获信号和
+已处理异常都会请求零帧，但进程
+清理无法覆盖 `SIGKILL`、断电、内核故障以及传输损坏或断开的情况。

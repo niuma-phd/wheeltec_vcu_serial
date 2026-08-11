@@ -1,67 +1,59 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Serial protocol contract
+# 串口协议约定
 
-Status: interoperability profile; physical behavior remains hardware- and
-firmware-dependent.
+状态：互操作协议说明；物理行为仍取决于具体硬件和固件。
 
-The serial line uses 115200 bit/s, eight data bits, no parity, one stop bit, and
-no flow control. Multi-byte integers are big-endian two's-complement values
-unless stated otherwise.
+串口参数为 115200 bit/s、8 个数据位、无校验、1 个停止位、无流控制。除非另有
+说明，多字节整数均为大端序二进制补码。
 
-## Command frame
+## 命令帧
 
-A normal command occupies 11 bytes:
+普通命令帧占 11 字节：
 
-| Byte range | Value or interpretation |
+| 字节范围 | 值或含义 |
 | --- | --- |
-| `0` | frame marker `0x7B` |
-| `1` | mode `0` for normal motion |
-| `2` | unused in this profile; sent as zero |
-| `3..4` | signed longitudinal speed in `0.001 m/s` |
-| `5..6` | signed lateral speed in `0.001 m/s` |
-| `7..8` | signed yaw rate in `0.001 rad/s` |
-| `9` | XOR reduction of bytes `0..8` |
-| `10` | frame marker `0x7D` |
+| `0` | 帧标记 `0x7B` |
+| `1` | 普通运动模式值 `0` |
+| `2` | 本协议配置未使用；发送时置零 |
+| `3..4` | 带符号纵向速度，单位 `0.001 m/s` |
+| `5..6` | 带符号横向速度，单位 `0.001 m/s` |
+| `7..8` | 带符号横摆角速度，单位 `0.001 rad/s` |
+| `9` | 对字节 `0..8` 执行 XOR 归约 |
+| `10` | 帧标记 `0x7D` |
 
-The codec checks every floating-point input for finiteness, multiplies by 1000,
-truncates toward zero, and verifies the resulting integer against the full
-`int16_t` range before conversion. Longitudinal speed is separately constrained
-by the caller's explicit `max_linear_speed_mps`; the magnitude must not exceed
-that value. The limit itself is valid only when finite and strictly between 0
-and 6 m/s.
+编解码器会检查每个浮点输入是否为有限数，将其乘以 1000 后向零截断，并在转换前
+验证所得整数是否处于完整的 `int16_t` 范围内。调用方通过显式的
+`max_linear_speed_mps` 对纵向速度另行限幅；速度绝对值不得超过该参数。只有当
+该限制值是有限数且严格处于 0 到 6 m/s 之间时，配置才有效。
 
-`makeZeroCommandFrame()` constructs the all-zero motion frame independently of
-motion configuration so shutdown paths remain available when configuration is
-invalid. A host write of that frame is not proof that the controller accepted
-it or that a vehicle stopped.
+`makeZeroCommandFrame()` 不依赖运动配置，独立构造所有运动量为零的帧，因此即使
+配置无效，关闭路径仍可使用零帧。主机写入该帧不证明控制器已经接受命令，也不证明
+车辆已经停止。
 
-## Primary feedback frame
+## 主反馈帧
 
-The primary feedback record occupies 24 bytes:
+主反馈记录占 24 字节：
 
-| Byte range | Value or interpretation |
+| 字节范围 | 值或含义 |
 | --- | --- |
-| `0` | frame marker `0x7B` |
-| `1` | composite inhibit: `0` currently allows control, `1` currently inhibits it |
-| `2..3` | signed longitudinal speed divided by 1000 |
-| `4..5` | signed lateral speed divided by 1000 |
-| `6..7` | signed yaw rate divided by 1000 |
-| `8..13` | three signed acceleration channels, each divided by `1671.84` |
-| `14..19` | three signed gyro channels, each multiplied by `0.00026644` |
-| `20..21` | unsigned supply-voltage value divided by 1000 |
-| `22` | XOR reduction of bytes `0..21` |
-| `23` | frame marker `0x7D` |
+| `0` | 帧标记 `0x7B` |
+| `1` | 复合 inhibit：`0` 表示当前允许控制，`1` 表示当前禁止控制 |
+| `2..3` | 带符号纵向速度，解码时除以 1000 |
+| `4..5` | 带符号横向速度，解码时除以 1000 |
+| `6..7` | 带符号横摆角速度，解码时除以 1000 |
+| `8..13` | 三个带符号加速度通道，每个通道解码时除以 `1671.84` |
+| `14..19` | 三个带符号陀螺仪通道，每个通道解码时乘以 `0.00026644` |
+| `20..21` | 无符号电源电压值，解码时除以 1000 |
+| `22` | 对字节 `0..21` 执行 XOR 归约 |
+| `23` | 帧标记 `0x7D` |
 
-Values other than 0 or 1 in byte 1 are rejected. This byte is not a command
-acknowledgement, command echo, sequence number, latched emergency stop, or
-specific fault code.
+字节 1 的值不是 0 或 1 时，帧会被拒绝。该字节不是命令 ACK、命令回显、序列号、
+锁存急停状态或特定故障码。
 
-The record contains no controller clock or source sequence. Applications must
-label local `CLOCK_MONOTONIC` receipt time as receipt time, not source time.
-Only a complete frame with valid markers, XOR, and inhibit domain may refresh a
-feedback watchdog. Several frames returned by one read may be buffered history
-and must not be presented as distinct fresh receipt events.
+记录中没有控制器时钟或源端序列号。应用必须将本地 `CLOCK_MONOTONIC` 接收时间
+标注为接收时间，不得标注为源端时间。只有帧标记、XOR 和 inhibit 取值域均有效的
+完整帧，才能刷新反馈看门狗。一次读取返回的多个帧可能是缓存的历史数据，不得被
+表述为多个各自新鲜的接收事件。
 
-Other controller frame types may appear on the byte stream. The rolling parser
-therefore advances one candidate at a time and bounds retained partial data to
-23 bytes.
+字节流中可能出现控制器的其他帧类型。因此，滚动解析器每次向前移动一个候选位置，
+并将保留的部分数据限制在 23 字节以内。

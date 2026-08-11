@@ -1,52 +1,49 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Wheeltec VCU serial
+# Wheeltec VCU 串口工具库
 
-An independently written, ROS-free C++14 library and command-line toolkit for
-one Wheeltec vehicle-controller serial profile. The project separates binary
-encoding, bounded stream parsing, POSIX transport, and a guarded motion session
-so middleware adapters can stay thin.
+这是一个独立编写、无需 ROS 的 C++14 库与命令行工具集，用于适配一种
+Wheeltec 整车控制器（VCU）串口协议规格。项目将二进制编解码、有界流解析、
+POSIX 传输和受保护的运动会话相互分离，使中间件适配层能够保持轻量。
 
-> **Experimental hardware interface.** A successful host write is not a VCU
-> acknowledgement, command echo, proof of controller acceptance, or evidence
-> that a vehicle stopped. Keep a tested physical traction-energy stop available.
+> **实验性硬件接口。** 主机写入成功不代表 VCU 已应答（ACK），也不代表
+> 命令被回显、控制器已接受命令或车辆已经停止。现场必须配备经过验证、可实际
+> 操作的独立牵引能源切断装置。
 
-The default configuration selects no serial device and therefore cannot actuate
-hardware without an explicit operator edit and three independent CLI gates.
+默认配置不选择任何串口设备，因此只有操作员明确修改配置并通过三个相互独立的
+CLI 安全门控后，软件才可能驱动硬件。
 
-## Maintained branches
+## 长期维护的分支
 
-| Branch | Platform | Contents |
+| 分支 | 平台 | 内容 |
 | --- | --- | --- |
-| `main` | Ubuntu 20.04, C++14 | ROS-free core, CLI, monitor, keyboard frontend |
-| `ros1/noetic` | Ubuntu 20.04, ROS 1 Noetic | `main` plus a thin ROS 1 boundary |
-| `ros2/humble` | Ubuntu 22.04, ROS 2 Humble | `main` plus a thin ROS 2 boundary |
+| `main` | Ubuntu 20.04，C++14 | 无 ROS 的核心库、CLI、监视器和键盘前端 |
+| `ros1/noetic` | Ubuntu 20.04，ROS 1 Noetic | `main` 加轻量 ROS 1 边界适配层 |
+| `ros2/humble` | Ubuntu 22.04，ROS 2 Humble | `main` 加轻量 ROS 2 边界适配层 |
 
-The ROS branches consume the middleware-independent API. `/cmd_vel` is not a
-core contract and is not treated as a universal vehicle command.
+ROS 分支使用与中间件无关的 API。`/cmd_vel` 不是核心接口契约，也不会被视为通用
+车辆命令。
 
-## What is implemented
+## 已实现功能
 
-- 11-byte command encoding and exact zero-frame construction;
-- 24-byte feedback validation and bounded rolling parsing;
-- signed forward/reverse speed and yaw-rate fields;
-- explicit, mandatory `max_linear_speed_mps` validation;
-- deadline-aware POSIX serial I/O with short-write, `EINTR`, `EAGAIN`, partial
-  outcome, disconnect, and reconnect handling;
-- startup/reconnect zero attempts, transmit rate limiting, command and feedback
-  watchdogs, replay high-water marks, fresh-command recovery, reauthorization,
-  a per-connection zero-fault latch, and a locally latched software emergency
-  stop;
-- a strict-INI keyboard frontend and guarded line-oriented serial CLI;
-- an explicitly receive-only monitor that opens a selected TTY with `O_RDONLY`;
-- synthetic unit tests, injected-syscall tests, and PTY process integration.
+- 11 字节命令帧编码和精确零运动帧构造；
+- 24 字节反馈帧校验和有界滚动解析；
+- 带符号的前进/后退速度与横摆角速度字段；
+- 对必填参数 `max_linear_speed_mps` 进行显式校验；
+- 带截止时间的 POSIX 串口 I/O，处理短写、`EINTR`、`EAGAIN`、部分写入结果、
+  断连和重连；
+- 启动/重连零帧尝试、发送频率限制、命令与反馈看门狗、重放高水位、以新鲜命令
+  恢复、重新授权、每次连接独立的零帧故障锁存，以及本地锁存的软件急停；
+- 严格解析 INI 配置的键盘前端，以及带安全防护、采用逐行输入协议的串口 CLI；
+- 明确只接收的监视器，以 `O_RDONLY` 打开指定 TTY；
+- 合成数据单元测试、注入式系统调用测试和 PTY 进程集成测试。
 
-The interoperable byte layout is documented in [docs/protocol.md](docs/protocol.md).
-Read [docs/safety.md](docs/safety.md) before selecting a physical device.
+可互操作的字节布局见 [docs/protocol.md](docs/protocol.md)。选择物理设备前，
+请先阅读 [docs/safety.md](docs/safety.md)。
 
-## Build and test on Ubuntu 20.04
+## 在 Ubuntu 20.04 上构建和测试
 
-The core has no runtime dependency beyond the C++ standard library and POSIX.
-CMake 3.16, GCC 9, and Python 3.8 are the target toolchain.
+核心库运行时只依赖 C++ 标准库和 POSIX。目标工具链为 CMake 3.16、GCC 9 和
+Python 3.8。
 
 ```bash
 /usr/bin/cmake -S . -B build \
@@ -56,8 +53,8 @@ CMake 3.16, GCC 9, and Python 3.8 are the target toolchain.
 (cd build && /usr/bin/ctest --output-on-failure)
 ```
 
-All tests use synthetic frames, fake I/O, or PTYs. They do not require or open
-a physical controller. To install into a staging prefix:
+所有测试都使用合成帧、伪 I/O 或 PTY；测试不需要也不会打开物理控制器。安装到
+临时前缀的方法如下：
 
 ```bash
 /usr/bin/cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
@@ -65,24 +62,22 @@ a physical controller. To install into a staging prefix:
 /usr/bin/cmake --install build-release --prefix "$PWD/install"
 ```
 
-`ci/run_ci.sh` repeats Debug, Release, sanitizer, install, CLI-smoke, Python,
-repository-policy, and dependency-version checks in the pinned Ubuntu 20.04
-environment described by [DEPENDENCIES.md](DEPENDENCIES.md).
+`ci/run_ci.sh` 会在 [DEPENDENCIES.md](DEPENDENCIES.md) 所述的固定
+Ubuntu 20.04 环境中重复执行 Debug、Release、sanitizer、安装、CLI 冒烟、
+Python、仓库策略和依赖版本检查。
 
-## Configuration is fail-closed
+## 配置遵循失败即关闭原则
 
-Copy [config/wheeltec_vcu_serial.ini](config/wheeltec_vcu_serial.ini) and set an
-explicit direct `/dev/...` path only after commissioning. The example limit is
-an editable conservative value; the library does not contain a fixed 0.50 m/s
-ceiling.
+复制 [config/wheeltec_vcu_serial.ini](config/wheeltec_vcu_serial.ini)，并且只在
+完成车辆调试确认后填写明确、直接的 `/dev/...` 路径。示例速度限制是可编辑的
+保守值；库代码中不存在固定的 0.50 m/s 上限。
 
-`max_linear_speed_mps` is accepted only when it is present, finite, and
-strictly greater than 0 and less than 6.0 m/s. Missing values, zero, negative
-values, NaN, infinity, and values at least 6.0 are rejected before an actuation
-device is opened. Every encoded field is also checked independently against its
-signed 16-bit wire range.
+只有当 `max_linear_speed_mps` 存在、为有限数，并且严格大于 0 且小于
+6.0 m/s 时，配置才会被接受。缺失值、零、负数、NaN、无穷大以及大于或等于
+6.0 的值，都会在打开驱动设备前被拒绝。编码时还会独立检查每个字段是否超出
+线协议（wire）格式的有符号 16 位整数范围。
 
-Validate a file without opening a serial device:
+无需打开串口即可校验配置文件：
 
 ```bash
 ./build/wheeltec_vcu_cli \
@@ -90,22 +85,21 @@ Validate a file without opening a serial device:
   --validate-config
 ```
 
-## Keyboard control
+## 键盘控制
 
-The frontend writes a machine protocol to stdout and all prompts to stderr. It
-does not open the serial device itself.
+前端将机器协议写到标准输出，将所有提示写到标准错误；它自身不会打开串口设备。
 
-| Key | Action |
+| 按键 | 操作 |
 | --- | --- |
-| `r` | issue a new local authorization token; re-press direction afterward |
-| `w` / `s` | forward / reverse at the selected speed magnitude |
-| `a` / `d` | forward left / right arc at configured curvature |
-| `q` / `e` | increase / decrease selected speed magnitude within configured bounds |
-| Space | stop and clear held direction |
-| `x` | latch software emergency stop; reset is deliberately external |
-| Esc or Ctrl-C | stop and exit |
+| `r` | 签发新的本地授权 token；随后需要重新按下方向键 |
+| `w` / `s` | 以当前所选速度绝对值前进/后退 |
+| `a` / `d` | 按配置曲率向左/向右前进转弯 |
+| `q` / `e` | 在配置的上下界内增加/减小当前所选速度绝对值 |
+| Space（空格键） | 停止并清除当前按住的方向 |
+| `x` | 锁存软件急停；复位有意留给外部授权流程 |
+| Esc 或 Ctrl-C | 停止并退出 |
 
-Example actuation pipeline, shown deliberately in full so no gate is hidden:
+下面完整列出一个驱动流水线示例，以免隐藏任何安全门控：
 
 ```bash
 python3 python/wheeltec_keyboard_teleop.py \
@@ -118,9 +112,9 @@ python3 python/wheeltec_keyboard_teleop.py \
   --operator-confirmation I_UNDERSTAND_HOST_WRITE_IS_NOT_A_VCU_ACK
 ```
 
-An ANSI terminal cannot report a physical key release. Its backend treats a
-gap in key repeat as release after `release_timeout_ms` and sends `STOP`. For
-real press/release events, supply an explicitly selected Linux event device:
+ANSI 终端无法报告物理按键松开事件。其后端会在 `release_timeout_ms` 时间内
+未收到按键重复时，将其视为松键并发送 `STOP`。如需真实的按下/松开事件，请明确
+指定一个 Linux 输入事件设备：
 
 ```bash
 python3 python/wheeltec_keyboard_teleop.py \
@@ -128,16 +122,14 @@ python3 python/wheeltec_keyboard_teleop.py \
   --event-device /dev/input/eventN
 ```
 
-Release, input timeout, handled exception, normal exit, and caught termination
-signals request zero. No userspace process can guarantee cleanup after
-`SIGKILL`, power loss, kernel failure, USB loss, or a controller that retains a
-previous target.
+按键松开、输入超时、已处理的异常、正常退出和捕获的终止信号都会请求发送零帧。
+任何用户态进程都无法保证在 `SIGKILL`、断电、内核故障、USB 断开，或控制器继续
+保持先前目标值时完成退出清理。
 
-## Receive-only observation
+## 只接收监视
 
-The monitor has no transport write call and requests `O_RDONLY`. Opening and
-configuring a USB TTY may still change line state or reset some devices, so the
-operator must acknowledge that effect:
+监视器没有传输写入调用，并以 `O_RDONLY` 请求打开设备。即便如此，打开和配置
+USB TTY 仍可能改变线路状态或使某些设备复位，因此操作员必须确认理解这一影响：
 
 ```bash
 ./build/wheeltec_vcu_monitor \
@@ -148,34 +140,29 @@ operator must acknowledge that effect:
   --operator-confirmation I_UNDERSTAND_OPENING_A_TTY_CAN_AFFECT_THE_DEVICE
 ```
 
-It prints aggregate decoded feedback only. Do not interpret its inhibit field
-as an ACK, fault code, source timestamp, or command sequence.
+它只输出解码后的汇总反馈。不得将其中的 inhibit 字段解释为 ACK、故障码、源端
+时间戳或命令序列号。
 
-## Library API
+## 库 API
 
-Public headers are under `include/wheeltec_vcu_serial`. Applications normally
-compose:
+公共头文件位于 `include/wheeltec_vcu_serial`。应用通常按以下顺序组合组件：
 
-1. `loadRuntimeConfig` for exact, strict configuration;
-2. `FeedbackParser` for bounded receive framing;
-3. `PosixSerialTransport` with an explicit access mode;
-4. `SafetySession` for single-threaded authorization, watchdog, zero, and
-   reconnect state;
-5. `encodeCommand` only at the protocol boundary.
+1. 使用 `loadRuntimeConfig` 加载精确、严格的配置；
+2. 使用 `FeedbackParser` 有界解析接收帧；
+3. 使用带显式访问模式的 `PosixSerialTransport`；
+4. 使用 `SafetySession` 管理单线程授权、看门狗、零帧和重连状态；
+5. 仅在协议边界调用 `encodeCommand`。
 
-`SafetySession` is intentionally single-threaded; serialize all calls in one
-I/O loop. Its `host_write_complete` result describes only the local operating
-system. The API never exposes that result as controller delivery or ACK.
+`SafetySession` 有意设计为单线程组件；所有调用必须在同一个 I/O 循环中串行执行。
+其 `host_write_complete` 结果只描述本地操作系统的状态。API 绝不会将该结果表述为
+控制器已收到命令或已给出 ACK。
 
-## Project boundaries and provenance
+## 项目边界与来源
 
-No vendor firmware, vendor source, middleware library, hardware capture, or
-third-party runtime code is bundled. Test frames are synthetic. See
-[PROVENANCE.md](PROVENANCE.md), [DEPENDENCIES.md](DEPENDENCIES.md), and
-[NOTICE](NOTICE) for the distribution boundary. This is an independent,
-unofficial interoperability implementation and is not affiliated with or
-endorsed by the hardware manufacturer.
+仓库不包含厂家固件、厂家源码、中间件库、硬件抓取数据或第三方运行时代码；测试帧
+均为合成数据。发布边界详见 [PROVENANCE.md](PROVENANCE.md)、
+[DEPENDENCIES.md](DEPENDENCIES.md) 和 [NOTICE](NOTICE)。这是独立、非官方的
+互操作实现，与硬件厂家没有从属、赞助或背书关系。
 
-Contributions must preserve the safety and dependency direction documented in
-[CONTRIBUTING.md](CONTRIBUTING.md). The project is licensed under Apache-2.0;
-see [LICENSE](LICENSE).
+贡献代码必须保持 [CONTRIBUTING.md](CONTRIBUTING.md) 中记录的安全要求和依赖
+方向。项目采用 Apache-2.0 许可证，详见 [LICENSE](LICENSE)。
