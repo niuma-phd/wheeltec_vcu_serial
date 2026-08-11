@@ -37,6 +37,13 @@ Key fail-closed properties are:
 - STOP received while disconnected is retained as local fail-safe intent and
   does not cancel reconnect, but no zero delivery is claimed.
 
+Authorization and emergency-stop reset tokens are monotonic replay guards, not
+passwords, credentials, capabilities, or proof of an operator's identity. The
+library assumes its caller and the CLI standard-input channel are trusted.
+Deployments that expose these operations over IPC or middleware must
+authenticate and authorize callers outside this library; a higher integer token
+alone grants no security boundary.
+
 Reverse speed is representable by the wire codec because the keyboard contract
 includes `s`. That does not establish that a particular vehicle is mechanically
 or operationally safe in reverse. Direction, yaw sign, steering response,
