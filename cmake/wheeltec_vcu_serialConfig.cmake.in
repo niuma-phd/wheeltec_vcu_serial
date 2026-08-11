@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/wheeltec_vcu_serialTargets.cmake")
+check_required_components(wheeltec_vcu_serial)

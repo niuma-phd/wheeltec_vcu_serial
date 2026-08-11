@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+/build*/
+/install*/
+/Testing/
+/.cache/
+/.pytest_cache/
+__pycache__/
+*.py[cod]
+*.swp
+*.swo
+*~
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.log
+*.ndjson
+*.pcap
+*.pcapng
+*.bag
+*.zip
+*.hex
+*.bin
+*.axf
+*.uvproj*
+compile_commands.json
