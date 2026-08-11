@@ -12,13 +12,13 @@ Every apt input is exact-version pinned in
 
 | Package | Pinned Focal/Noetic version | Role |
 | --- | --- | --- |
-| `ros-noetic-catkin` | `0.8.11-1focal.20250410.223049` | Build system and gtest integration |
-| `ros-noetic-message-generation` | `0.4.1-1focal.20250410.230639` | Build-time message/service generation |
-| `ros-noetic-message-runtime` | `0.4.13-1focal.20250410.231453` | Generated message/service runtime |
-| `ros-noetic-roscpp` | `1.17.0-1focal.20250410.232154` | ROS 1 C++ graph boundary |
-| `ros-noetic-rospy` | `1.17.0-1focal.20250410.233036` | Offline-node contract test client |
-| `ros-noetic-rostest` | `1.17.0-1focal.20250410.235150` | Isolated offline-node launch test |
-| `ros-noetic-std-srvs` | `1.11.4-1focal.20250410.231529` | Stop and E-stop trigger services |
+| `ros-noetic-catkin` | `0.8.12-1focal.20250426.001935` | Build system and gtest integration |
+| `ros-noetic-message-generation` | `0.4.1-1focal.20250426.010337` | Build-time message/service generation |
+| `ros-noetic-message-runtime` | `0.4.13-1focal.20250426.011132` | Generated message/service runtime |
+| `ros-noetic-roscpp` | `1.17.4-1focal.20250519.225343` | ROS 1 C++ graph boundary |
+| `ros-noetic-rospy` | `1.17.4-1focal.20250519.231646` | Offline-node contract test client |
+| `ros-noetic-rostest` | `1.17.4-1focal.20250519.233130` | Isolated offline-node launch test |
+| `ros-noetic-std-srvs` | `1.11.4-1focal.20250426.011617` | Stop and E-stop trigger services |
 
 The ROS-free core is built from the same branch revision, installed to a
 temporary prefix, and discovered with its exported CMake config. It is not
