@@ -1,0 +1,19 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<launch>
+  <node pkg="wheeltec_vcu_serial_ros1"
+        type="wheeltec_vcu_serial_adapter_node"
+        name="offline_adapter_under_test"
+        output="screen"
+        required="true">
+    <param name="config_file"
+           value="$(find wheeltec_vcu_serial_ros1)/config/offline.ini" />
+    <param name="acknowledge_unverified_protocol" value="false" />
+    <param name="enable_actuation" value="false" />
+    <param name="operator_confirmation" value="" />
+  </node>
+
+  <test pkg="wheeltec_vcu_serial_ros1"
+        type="test_offline_node.py"
+        test-name="offline_node_contract"
+        time-limit="15" />
+</launch>

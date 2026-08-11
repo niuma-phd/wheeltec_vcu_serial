@@ -18,7 +18,7 @@ hardware without an explicit operator edit and three independent CLI gates.
 | Branch | Platform | Contents |
 | --- | --- | --- |
 | `main` | Ubuntu 20.04, C++14 | ROS-free core, CLI, monitor, keyboard frontend |
-| `ros1/noetic` | Ubuntu 20.04, ROS 1 Noetic | `main` plus a thin ROS 1 boundary |
+| `ros1/noetic` | Ubuntu 20.04, ROS 1 Noetic | `main` plus the [thin ROS 1 boundary](ros1/wheeltec_vcu_serial_ros1) |
 | `ros2/humble` | Ubuntu 22.04, ROS 2 Humble | `main` plus a thin ROS 2 boundary |
 
 The ROS branches consume the middleware-independent API. `/cmd_vel` is not a

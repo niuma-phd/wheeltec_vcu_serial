@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+build-essential=12.8ubuntu1.1
+cmake=3.16.3-1ubuntu1.20.04.1
+gcc=4:9.3.0-1ubuntu2
+g++=4:9.3.0-1ubuntu2
+libc6-dev=2.31-0ubuntu9.18
+make=4.2.1-1.2
+python3=3.8.2-0ubuntu2
+ros-noetic-catkin=0.8.11-1focal.20250410.223049
+ros-noetic-message-generation=0.4.1-1focal.20250410.230639
+ros-noetic-message-runtime=0.4.13-1focal.20250410.231453
+ros-noetic-roscpp=1.17.0-1focal.20250410.232154
+ros-noetic-rospy=1.17.0-1focal.20250410.233036
+ros-noetic-rostest=1.17.0-1focal.20250410.235150
+ros-noetic-std-srvs=1.11.4-1focal.20250410.231529

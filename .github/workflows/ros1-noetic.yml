@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+name: ROS 1 Noetic
+
+on:
+  push:
+    branches: ["ros1/noetic"]
+  pull_request:
+    branches: ["ros1/noetic"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+
+      - name: Build in pinned Noetic/Focal image
+        env:
+          ROS1_IMAGE: ros:noetic-ros-base-focal@sha256:72b8bc59035dc0a5b8e07aae28c16caa84192971d72d207c72ed734fb1d5e97d
+        run: |
+          docker pull "${ROS1_IMAGE}"
+          docker run --rm \
+            --mount "type=bind,src=${PWD},dst=/workspace,readonly" \
+            --workdir /workspace \
+            "${ROS1_IMAGE}" \
+            bash -lc '/workspace/ros1/ci/install_ci_dependencies.sh && /workspace/ros1/ci/run_ros1_ci.sh /workspace'

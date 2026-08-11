@@ -1,0 +1,22 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<launch>
+  <!-- Defaults keep the node alive offline and never open a serial device. -->
+  <arg name="config_file"
+       default="$(find wheeltec_vcu_serial_ros1)/config/offline.ini" />
+  <arg name="acknowledge_unverified_protocol" default="false" />
+  <arg name="enable_actuation" default="false" />
+  <arg name="operator_confirmation" default="" />
+
+  <node pkg="wheeltec_vcu_serial_ros1"
+        type="wheeltec_vcu_serial_adapter_node"
+        name="wheeltec_vcu_serial_adapter"
+        output="screen"
+        required="true">
+    <param name="config_file" value="$(arg config_file)" />
+    <param name="acknowledge_unverified_protocol"
+           value="$(arg acknowledge_unverified_protocol)" />
+    <param name="enable_actuation" value="$(arg enable_actuation)" />
+    <param name="operator_confirmation"
+           value="$(arg operator_confirmation)" />
+  </node>
+</launch>

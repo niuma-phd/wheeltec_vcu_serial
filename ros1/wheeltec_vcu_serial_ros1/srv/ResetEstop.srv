@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+uint64 token
+---
+bool accepted
+string reason

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<package format="2">
+  <name>wheeltec_vcu_serial_ros1</name>
+  <version>0.1.0</version>
+  <description>
+    Thin ROS 1 Noetic boundary for the ROS-free wheeltec_vcu_serial core.
+  </description>
+
+  <maintainer email="niuma-phd@users.noreply.github.com">niuma-phd</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>std_srvs</build_export_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <test_depend>rospy</test_depend>
+  <test_depend>rostest</test_depend>
+
+</package>
