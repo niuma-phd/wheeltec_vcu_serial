@@ -54,7 +54,6 @@ void testValidationBoundaries() {
   const double invalid_limits[] = {
       0.0,
       -0.1,
-      6.0,
       6.001,
       std::numeric_limits<double>::quiet_NaN(),
       std::numeric_limits<double>::infinity(),
@@ -67,9 +66,9 @@ void testValidationBoundaries() {
   }
 
   config = validConfig();
-  config.max_linear_speed_mps = 5.999;
+  config.max_linear_speed_mps = 6.0;
   check(vcu::validateRuntimeConfig(config, true).ok(),
-        "a finite maximum below six is accepted");
+        "the six metre-per-second project ceiling is accepted");
 
   config = validConfig();
   config.max_selected_speed_mps = 1.251;

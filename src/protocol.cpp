@@ -63,7 +63,7 @@ EncodeResult encodeFailure(EncodeError error) noexcept {
 }  // namespace
 
 bool isValidMaxLinearSpeed(double value_mps) noexcept {
-  return std::isfinite(value_mps) && value_mps > 0.0 && value_mps < 6.0;
+  return std::isfinite(value_mps) && value_mps > 0.0 && value_mps <= 6.0;
 }
 
 EncodeResult encodeCommand(

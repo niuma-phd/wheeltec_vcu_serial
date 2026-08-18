@@ -70,13 +70,11 @@ void testZeroFrame() {
 void testExplicitLimitValidation() {
   check(protocol::isValidMaxLinearSpeed(0.001),
         "a positive finite limit is valid");
-  check(protocol::isValidMaxLinearSpeed(5.999999),
-        "a finite limit below six is valid");
+  check(protocol::isValidMaxLinearSpeed(6.0),
+        "the configured six metre-per-second ceiling is valid");
   check(!protocol::isValidMaxLinearSpeed(0.0), "zero limit is invalid");
   check(!protocol::isValidMaxLinearSpeed(-0.1), "negative limit is invalid");
-  check(!protocol::isValidMaxLinearSpeed(6.0),
-        "six is an exclusive configuration bound");
-  check(!protocol::isValidMaxLinearSpeed(7.0),
+  check(!protocol::isValidMaxLinearSpeed(6.001),
         "a limit above the configuration bound is invalid");
   check(!protocol::isValidMaxLinearSpeed(
             std::numeric_limits<double>::quiet_NaN()),
@@ -113,6 +111,9 @@ void testSignedEncodingAndTruncation() {
   check(protocol::encodeCommand(protocol::MotionCommand{2.0, 0.0, 0.0}, 2.0)
             .ok(),
         "linear speed equal to the explicit limit is accepted");
+  check(protocol::encodeCommand(protocol::MotionCommand{6.0, 0.0, 0.0}, 6.0)
+            .ok(),
+        "six metres per second fits the signed wire field and configured limit");
   check(protocol::encodeCommand(protocol::MotionCommand{2.001, 0.0, 0.0}, 2.0)
             .error == protocol::EncodeError::kLinearSpeedLimitExceeded,
         "positive speed above the explicit limit is rejected");

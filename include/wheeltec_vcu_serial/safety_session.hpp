@@ -11,7 +11,7 @@ namespace wheeltec_vcu_serial {
 
 struct SafetyConfig {
   // Deliberately invalid until supplied by the application.  The accepted
-  // domain is finite and 0 < max_linear_speed_mps < 6.0.
+  // domain is finite and 0 < max_linear_speed_mps <= 6.0.
   double max_linear_speed_mps{
       std::numeric_limits<double>::quiet_NaN()};
   double max_abs_yaw_rate_radps{

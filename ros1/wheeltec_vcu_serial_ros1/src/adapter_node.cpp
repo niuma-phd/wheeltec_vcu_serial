@@ -71,6 +71,8 @@ class RosAdapter final {
         "drive_command", 1U, &RosAdapter::onDriveCommand, this);
     authorize_service_ = private_node_.advertiseService(
         "authorize", &RosAdapter::onAuthorize, this);
+    disarm_service_ = private_node_.advertiseService(
+        "disarm", &RosAdapter::onDisarm, this);
     stop_service_ = private_node_.advertiseService(
         "stop", &RosAdapter::onStop, this);
     emergency_stop_service_ = private_node_.advertiseService(
@@ -276,6 +278,21 @@ class RosAdapter final {
     return true;
   }
 
+  bool onDisarm(std_srvs::Trigger::Request&,
+                std_srvs::Trigger::Response& response) {
+    if (!actuation_enabled_) {
+      response.success = true;
+      response.message = "offline; motion is already unauthorized";
+      return true;
+    }
+    const std::int64_t now_ns = core::monotonicNowNs();
+    response.success = session_->disarm(now_ns);
+    response.message = response.success
+                           ? "local motion authorization revoked; VCU ACK unavailable"
+                           : "local disarm could not start a zero episode; outcome uncertain";
+    return true;
+  }
+
   bool onEmergencyStop(std_srvs::Trigger::Request&,
                        std_srvs::Trigger::Response& response) {
     const std::int64_t now_ns = core::monotonicNowNs();
@@ -468,6 +485,7 @@ class RosAdapter final {
   ros::Publisher state_publisher_;
   ros::Subscriber command_subscriber_;
   ros::ServiceServer authorize_service_;
+  ros::ServiceServer disarm_service_;
   ros::ServiceServer stop_service_;
   ros::ServiceServer emergency_stop_service_;
   ros::ServiceServer reset_emergency_stop_service_;

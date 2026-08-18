@@ -485,7 +485,7 @@ SerialOpenResult PosixSerialTransport::openNewGeneration() {
   do {
     opened_fd = ::open(device_path_.c_str(),
                        requested_access | O_NONBLOCK | O_NOCTTY |
-                           O_CLOEXEC | O_NOFOLLOW);
+                           O_CLOEXEC);
   } while (opened_fd < 0 && errno == EINTR);
   if (opened_fd < 0) {
     const int open_error = errno == 0 ? EIO : errno;

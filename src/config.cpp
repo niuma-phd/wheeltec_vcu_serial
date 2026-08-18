@@ -114,10 +114,10 @@ ConfigResult validateRuntimeConfig(const RuntimeConfig& config,
   }
   if (!std::isfinite(config.max_linear_speed_mps) ||
       config.max_linear_speed_mps <= 0.0 ||
-      config.max_linear_speed_mps >= 6.0) {
+      config.max_linear_speed_mps > 6.0) {
     return failure(
         ConfigError::kInvalidValue,
-        "limits.max_linear_speed_mps must be finite, greater than 0, and less than 6.0");
+        "limits.max_linear_speed_mps must be finite and in (0, 6.0]");
   }
   if (!finitePositive(config.max_abs_yaw_rate_radps) ||
       config.max_abs_yaw_rate_radps > 32.767) {
