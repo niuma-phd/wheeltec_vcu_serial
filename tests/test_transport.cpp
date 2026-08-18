@@ -341,6 +341,33 @@ void testInvalidPathNeverOpens() {
          "missing explicit serial path fails before any device open");
 }
 
+void testStableUdevSymlinkIsAccepted() {
+  PtyMaster pty;
+  expect(openPtyMaster(&pty), "PTY for stable udev symlink test opens");
+  if (pty.fd < 0 || pty.slave_path.empty()) {
+    return;
+  }
+
+  char link_path[] = "/tmp/wheeltec_vcu_udev_link_XXXXXX";
+  const int placeholder_fd = ::mkstemp(link_path);
+  expect(placeholder_fd >= 0, "temporary udev-link name is reserved");
+  if (placeholder_fd < 0) {
+    return;
+  }
+  (void)::close(placeholder_fd);
+  (void)::unlink(link_path);
+  expect(::symlink(pty.slave_path.c_str(), link_path) == 0,
+         "stable udev-style symlink is created");
+
+  wvs::PosixSerialTransport transport(
+      link_path, wvs::SerialAccess::kReadWrite);
+  const wvs::SerialOpenResult result = transport.open();
+  expect(result.ok() && transport.connected() && result.generation == 1U,
+         "serial transport accepts a stable udev symlink to a TTY");
+  transport.close();
+  (void)::unlink(link_path);
+}
+
 void testRegularFileIsNotAcceptedAsSerial() {
   char path[] = "/tmp/wheeltec_vcu_transport_test_XXXXXX";
   const int file_fd = ::mkstemp(path);
@@ -370,6 +397,7 @@ int main() {
   testReadRetriesAndDeadline();
   testPtyReadOnlyAndReadWriteAccess();
   testInvalidPathNeverOpens();
+  testStableUdevSymlinkIsAccepted();
   testRegularFileIsNotAcceptedAsSerial();
   if (failures != 0) {
     std::fprintf(stderr, "%d transport test(s) failed\n", failures);

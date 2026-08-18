@@ -39,11 +39,129 @@ ln -s /path/to/wheeltec_vcu_serial/ros1/wheeltec_vcu_serial_ros1 \
 测试覆盖转换、门禁、消息合同，以及使用空设备 offline 配置运行的真实节点；
 任何测试都不会进入 actuation 路径，也不会打开串口设备。
 
+## AutoRoverField 现场部署
+
+以下流程适用于 Ubuntu 20.04、ROS 1 Noetic，以及由 udev 固定为
+`/dev/wheeltec_controller` 的单台 VCU。不要在部署脚本中枚举或猜测
+`ttyACM*` / `ttyUSB*`。
+
+### 1. 建立身份固定的 udev 别名
+
+先对实际设备读取 USB 父设备属性：
+
+```bash
+udevadm info --attribute-walk --name=/dev/ttyACM0
+```
+
+用现场确认的 VID、PID 和序列号创建 `/etc/udev/rules.d/99-wheeltec-controller.rules`：
+
+```udev
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="<VID>", ATTRS{idProduct}=="<PID>", ATTRS{serial}=="<SERIAL>", GROUP:="dialout", MODE:="0660", SYMLINK+="wheeltec_controller"
+```
+
+不要把占位符原样安装，也不要使用 `MODE="0777"`。安装或修改规则后执行：
+
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=tty
+sudo udevadm settle
+readlink -f /dev/wheeltec_controller
+```
+
+运行节点的账号必须属于 `dialout` 组；新增组成员后需要重新登录：
+
+```bash
+sudo usermod -aG dialout "$USER"
+id -nG
+```
+
+### 2. 安装配置
+
+从随包的 offline 配置复制一份车辆专用文件，保留 watchdog 参数并显式设置设备与限值：
+
+```bash
+sudo install -d -m 0755 /etc/auto-rover
+sudo install -m 0640 \
+  ros1/wheeltec_vcu_serial_ros1/config/offline.ini \
+  /etc/auto-rover/wheeltec-vcu.ini
+sudoedit /etc/auto-rover/wheeltec-vcu.ini
+```
+
+至少核对以下字段：
+
+```ini
+[serial]
+device = /dev/wheeltec_controller
+
+[limits]
+max_linear_speed_mps = 6.00
+max_abs_yaw_rate_radps = 1.00
+```
+
+`6.00 m/s` 是软件允许的上限，不是建议启动速度；实际应用仍应以自己的低速预设下发
+命令。串口线协议固定为 115200 bit/s、8N1、无流控。
+
+### 3. 先做 offline 验收
+
+不带任何 actuation 参数启动，确认节点不会打开串口：
+
+```bash
+source /opt/ros/noetic/setup.bash
+source /path/to/catkin_ws/devel/setup.bash
+roslaunch wheeltec_vcu_serial_ros1 adapter.launch
+```
+
+另一个终端检查：
+
+```bash
+rostopic echo -n1 /wheeltec_vcu_serial_adapter/adapter_state
+rosservice call /wheeltec_vcu_serial_adapter/disarm '{}'
+```
+
+预期 `actuation_enabled=false`、`session_state=offline`，且 disarm 返回本地已处于未授权状态。
+
+### 4. 启动实车适配器
+
+确认串口没有被其它进程占用、车辆处于 DISARM、物理急停可操作后，再显式打开三项门禁：
+
+```bash
+roslaunch wheeltec_vcu_serial_ros1 adapter.launch \
+  config_file:=/etc/auto-rover/wheeltec-vcu.ini \
+  acknowledge_unverified_protocol:=true \
+  enable_actuation:=true \
+  operator_confirmation:=I_UNDERSTAND_HOST_WRITE_IS_NOT_A_VCU_ACK
+```
+
+启动成功后应先处于 `connected_inhibited`，不会因串口连接本身自动授权。受信 supervisor
+需要用严格递增且非零的 token 调用：
+
+```bash
+rosservice call /wheeltec_vcu_serial_adapter/authorize 'token: 1'
+```
+
+普通上锁使用独立 disarm 服务，不需要急停 reset token：
+
+```bash
+rosservice call /wheeltec_vcu_serial_adapter/disarm '{}'
+```
+
+调用结果只代表主机本地状态机接受了请求；该 VCU 线协议没有 ACK。停进程前先 disarm，
+再用 `Ctrl-C` 正常退出。物理急停链始终独立存在。
+
+### 5. 更新、回滚和验收
+
+更新只部署经过审查的 `ros1/noetic` 提交或标签，重新构建核心和 catkin 包，然后重复
+offline 验收。回滚时切回上一个已验证提交并重新安装，不要混用新旧核心库。
+
+实车上线前至少验证：udev 别名指向预期 USB 身份、节点初始未授权、反馈新鲜、授权后低速
+前进/倒车符号正确、disarm 立即撤销授权并进入零帧 episode、命令超时归零、软件急停锁存，
+以及重连后必须重新授权。
+
 ## 失败即关闭的启动
 
 必填私有参数 `~config_file` 必须指向符合核心严格语法的 INI 文件。
 `max_linear_speed_mps` 必须为有限值，且满足
-`0 < max_linear_speed_mps < 6.0`；核心还会独立检查每个有符号 16-bit 线协议
+`0 < max_linear_speed_mps <= 6.0`；核心还会独立检查每个有符号 16-bit 线协议
 字段。
 
 三项门禁参数只有以下两种组合合法：
@@ -170,6 +288,7 @@ bool source_time_available
 | 服务 | 类型 | 语义 |
 | --- | --- | --- |
 | `~authorize` | `Authorize` | 仅在 initial zero 完成且收到新鲜的允许控制反馈后，接受新的、非零、严格递增 token。 |
+| `~disarm` | `std_srvs/Trigger` | 撤销本地运动授权、清除运动意图，并开始有界零帧 episode。 |
 | `~stop` | `std_srvs/Trigger` | 清除本地运动意图，并在条件允许时开始有界零帧 episode。 |
 | `~emergency_stop` | `std_srvs/Trigger` | 锁存独立的软件急停路径；绝不自动恢复。 |
 | `~reset_emergency_stop` | `ResetEstop` | 要求新的 token、当前 connection generation、已完成的零帧以及新鲜的允许控制反馈；随后仍需重新授权才能运动。 |
@@ -179,7 +298,7 @@ bool source_time_available
 `bool success` 与 `string message`。
 
 服务响应只表示本地状态机是否接受请求，从不表示 VCU 接受请求。offline 模式
-拒绝授权和运动，把 stop 视为已经处于本地无 I/O 状态，且绝不尝试串口输出。
+拒绝授权和运动，把 disarm/stop 视为已经处于本地无 I/O 状态，且绝不尝试串口输出。
 
 ### Token 与 ROS graph 安全边界
 

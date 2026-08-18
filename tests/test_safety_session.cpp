@@ -196,8 +196,11 @@ void testConfigurationFailsClosed() {
 
   wvs::SafetyConfig invalid = validConfig();
   invalid.max_linear_speed_mps = 6.0;
+  expect(wvs::safetyConfigIsValid(invalid),
+         "6.0 m/s is the inclusive project safety-session ceiling");
+  invalid.max_linear_speed_mps = 6.001;
   expect(!wvs::safetyConfigIsValid(invalid),
-         "6.0 m/s is an exclusive invalid safety-session limit");
+         "a linear-speed limit above 6.0 m/s fails closed");
   invalid = validConfig();
   invalid.max_linear_speed_mps = 0.0;
   expect(!wvs::safetyConfigIsValid(invalid),
@@ -369,6 +372,24 @@ void testFeedbackWatchdogAndCompositeInhibit() {
                session.state() == wvs::SessionState::kConnectedInhibited,
            "composite inhibit takes the bounded zero path");
   }
+}
+
+void testDisarmRevokesAuthorizationAndWritesZero() {
+  FakeTransport transport;
+  wvs::SafetySession session(validConfig(), &transport);
+  prepareActive(&session, &transport);
+  expect(session.authorized(),
+         "disarm fixture begins with active local authorization");
+
+  const std::size_t before = transport.writes.size();
+  expect(session.disarm(105) && !session.authorized(),
+         "disarm immediately revokes local authorization");
+  const wvs::CycleResult stopped = tickAt(&session, &transport, 105);
+  expect(stopped.action == wvs::CycleAction::kZeroHostWriteComplete &&
+             session.state() == wvs::SessionState::kConnectedInhibited &&
+             transport.writes.size() == before + 1U &&
+             isExactZero(transport.writes.back()),
+         "disarm completes through the bounded exact-zero path");
 }
 
 void testMotionFailureAttemptsZeroInSameTick() {
@@ -560,6 +581,7 @@ int main() {
   testAuthorizationRecoveryRateAndWatchdog();
   testSignedMotionAndSessionLimits();
   testFeedbackWatchdogAndCompositeInhibit();
+  testDisarmRevokesAuthorizationAndWritesZero();
   testMotionFailureAttemptsZeroInSameTick();
   testBoundedZeroRetries();
   testReconnectRequiresNewAuthorizationAndCommands();

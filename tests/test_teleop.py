@@ -138,8 +138,9 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.initial_selected_speed_mps, 0.10)
         self.assertLess(config.command_period_ns, config.release_timeout_ns)
 
-    def test_immutable_limit_rejects_missing_zero_nonfinite_and_six(self) -> None:
-        for value in ("0", "-1", "nan", "inf", "-inf", "6", "6.1", "0_3"):
+    def test_immutable_limit_accepts_six_and_rejects_values_above_it(self) -> None:
+        self.assertEqual(load_text(config_text(immutable_limit="6")).max_linear_speed_mps, 6.0)
+        for value in ("0", "-1", "nan", "inf", "-inf", "6.1", "0_3"):
             with self.subTest(value=value):
                 with self.assertRaises(teleop.ConfigurationError):
                     load_text(config_text(immutable_limit=value))

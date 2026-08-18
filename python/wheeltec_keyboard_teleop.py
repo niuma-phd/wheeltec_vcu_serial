@@ -96,9 +96,9 @@ def validate_config(config: TeleopConfig) -> None:
             raise ConfigurationError("{} must be finite".format(name))
 
     immutable_limit = config.max_linear_speed_mps
-    if not 0.0 < immutable_limit < 6.0:
+    if not 0.0 < immutable_limit <= 6.0:
         raise ConfigurationError(
-            "max_linear_speed_mps must satisfy 0 < value < 6.0"
+            "max_linear_speed_mps must satisfy 0 < value <= 6.0"
         )
 
     if not 0.0 < config.min_selected_speed_mps:
